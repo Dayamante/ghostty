@@ -364,6 +364,11 @@ pub const Action = union(Key) {
     /// split or the window is fullscreen.
     resize_window: ResizeWindow,
 
+    /// A program reported its own state through the Program Status
+    /// Protocol (OSC 7501): idle, working, done, blocked or error, or
+    /// clear once it stops reporting. Only the root record is sent.
+    program_status: ProgramStatus,
+
     /// Sync with: ghostty_action_tag_e
     pub const Key = enum(c_int) {
         quit,
@@ -436,6 +441,7 @@ pub const Action = union(Key) {
         copy_title_to_clipboard,
         move_tab_to_new_window,
         resize_window,
+        program_status,
 
         test "ghostty.h Action.Key" {
             try lib.checkGhosttyHEnum(Key, "GHOSTTY_ACTION_");
@@ -1023,6 +1029,38 @@ pub const CommandFinished = struct {
             .exit_code = self.exit_code orelse -1,
             .duration = self.duration.duration,
         };
+    }
+};
+
+pub const ProgramStatus = struct {
+    state: terminal.osc.Command.ProgramStatus.State,
+
+    // Sync with: ghostty_action_program_status_s
+    pub const C = extern struct {
+        state: c_int,
+    };
+
+    pub fn cval(self: ProgramStatus) C {
+        return .{ .state = @backingInt(self.state) };
+    }
+
+    test "ghostty.h ProgramStatus.State" {
+        const CState = lib.Enum(.c, &.{
+            "idle",
+            "working",
+            "done",
+            "blocked",
+            "error",
+            "clear",
+        });
+        const State = terminal.osc.Command.ProgramStatus.State;
+        inline for (@typeInfo(CState).@"enum".field_names) |name| {
+            try std.testing.expectEqual(
+                @intFromEnum(@field(CState, name)),
+                @intFromEnum(@field(State, name)),
+            );
+        }
+        try lib.checkGhosttyHEnum(CState, "GHOSTTY_PROGRAM_STATUS_STATE_");
     }
 };
 

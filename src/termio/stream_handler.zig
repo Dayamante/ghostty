@@ -345,6 +345,7 @@ pub const StreamHandler = struct {
             .report_pwd => try self.reportPwd(value.url),
             .show_desktop_notification => try self.showDesktopNotification(value.title, value.body),
             .progress_report => self.progressReport(value),
+            .program_status => try self.programStatus(value),
             .start_hyperlink => try self.startHyperlink(value.uri, value.id),
             .clipboard_contents => try self.clipboardContents(value.kind, value.data),
             .semantic_prompt => try self.semanticPrompt(value),
@@ -385,7 +386,6 @@ pub const StreamHandler = struct {
             .title_pop,
             .kitty_dnd,
             .osc_unknown,
-            .program_status,
             => {},
         }
     }
@@ -1946,6 +1946,31 @@ pub const StreamHandler = struct {
     /// Display a GUI progress report.
     fn progressReport(self: *StreamHandler, report: terminal.osc.Command.ProgressReport) void {
         self.surfaceMessageWriter(.{ .progress_report = report });
+    }
+
+    /// Program Status Protocol (OSC 7501). Answers the support query and
+    /// forwards the root record (a report without an id), which is the
+    /// program's own state. Records with an id describe parts of the
+    /// program; the apprt has no use for them yet, so they are dropped.
+    fn programStatus(
+        self: *StreamHandler,
+        cmd: terminal.osc.Command.ProgramStatus,
+    ) !void {
+        switch (cmd) {
+            .query => |terminator| {
+                const resp = switch (terminator) {
+                    inline else => |t| "\x1b]7501;" ++
+                        terminal.osc.program_status.query_reply ++
+                        comptime t.string(),
+                };
+                const msg = try termio.Message.writeReq(self.alloc, resp);
+                self.messageWriter(msg);
+            },
+            .report => |report| {
+                if (report.readOption(.id) != null) return;
+                self.surfaceMessageWriter(.{ .program_status = .{ .state = report.state } });
+            },
+        }
     }
 };
 

@@ -914,6 +914,21 @@ typedef struct {
   int8_t progress;
 } ghostty_action_progress_report_s;
 
+// terminal.osc.Command.ProgramStatus.State
+typedef enum {
+  GHOSTTY_PROGRAM_STATUS_STATE_IDLE,
+  GHOSTTY_PROGRAM_STATUS_STATE_WORKING,
+  GHOSTTY_PROGRAM_STATUS_STATE_DONE,
+  GHOSTTY_PROGRAM_STATUS_STATE_BLOCKED,
+  GHOSTTY_PROGRAM_STATUS_STATE_ERROR,
+  GHOSTTY_PROGRAM_STATUS_STATE_CLEAR,
+} ghostty_action_program_status_state_e;
+
+// apprt.action.ProgramStatus.C
+typedef struct {
+  ghostty_action_program_status_state_e state;
+} ghostty_action_program_status_s;
+
 // apprt.action.CommandFinished.C
 typedef struct {
   // -1 if no exit code was reported, otherwise 0-255
@@ -1016,6 +1031,7 @@ typedef enum {
   GHOSTTY_ACTION_COPY_TITLE_TO_CLIPBOARD,
   GHOSTTY_ACTION_MOVE_TAB_TO_NEW_WINDOW,
   GHOSTTY_ACTION_RESIZE_WINDOW,
+  GHOSTTY_ACTION_PROGRAM_STATUS,
 } ghostty_action_tag_e;
 
 typedef union {
@@ -1060,6 +1076,7 @@ typedef union {
   ghostty_action_search_selected_s search_selected;
   ghostty_action_readonly_e readonly;
   ghostty_action_open_config_e open_config;
+  ghostty_action_program_status_s program_status;
 } ghostty_action_u;
 
 typedef struct {
