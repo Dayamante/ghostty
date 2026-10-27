@@ -2124,6 +2124,19 @@ pub const CAPI = struct {
         surface.textCallback(ptr[0..len]);
     }
 
+    /// Write bytes to the surface's pty as-is, as if they were typed.
+    /// Unlike ghostty_surface_text, nothing is paste-encoded, so the
+    /// caller can send control characters and escape sequences.
+    export fn ghostty_surface_write(
+        surface: *Surface,
+        ptr: [*]const u8,
+        len: usize,
+    ) void {
+        surface.core_surface.writeInput(ptr[0..len]) catch |err| {
+            log.warn("error writing to surface err={}", .{err});
+        };
+    }
+
     /// Paste text into the terminal as if it came from the clipboard.
     /// Unlike ghostty_surface_text, this applies paste protection, so
     /// unsafe text (e.g. containing newlines) requests confirmation via

@@ -3433,6 +3433,16 @@ fn encodeKeyOpts(self: *const Surface) input.key_encode.Options {
 /// from the clipboard so the same logic will be applied. Namely,
 /// if bracketed mode is on this will do a bracketed paste. Otherwise,
 /// this will filter newlines to '\r'.
+/// Write bytes to the pty as-is, as if the user typed them: no paste
+/// encoding, no newline conversion. Scrolls to the bottom like typing.
+pub fn writeInput(self: *Surface, data: []const u8) !void {
+    self.queueIo(try termio.Message.writeReq(self.alloc, data), .unlocked);
+
+    self.renderer_state.mutex.lockUncancelable(global.io());
+    defer self.renderer_state.mutex.unlock(global.io());
+    try self.scrollToBottom();
+}
+
 pub fn textCallback(self: *Surface, text: []const u8) !void {
     // Crash metadata in case we crash in here
     crash.sentry.thread_state = self.crashThreadState();
