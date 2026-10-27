@@ -69,6 +69,11 @@ terminal_stream: StreamHandler.Stream,
 /// flooding with cursor resets.
 last_cursor_reset: ?std.Io.Timestamp = null,
 
+/// When output from the child was last processed, in milliseconds on the
+/// awake clock, or 0 before any output. Other threads read it without the
+/// renderer state lock, e.g. an apprt checking whether a program is quiet.
+last_output_ms: std.atomic.Value(i64) = .init(0),
+
 /// State we have for thread enter. This may be null if we don't need
 /// to keep track of any state or if its already been freed.
 thread_enter_state: ?*ThreadEnterState = null,
@@ -720,6 +725,10 @@ fn processOutputLocked(self: *Termio, buf: []const u8) void {
     // HEAVY read load, we don't want to send a ton of these so we
     // use a timer under the covers
     const now = std.Io.Timestamp.now(global.io(), .awake);
+    self.last_output_ms.store(
+        @intCast(@divTrunc(now.nanoseconds, std.time.ns_per_ms)),
+        .monotonic,
+    );
     cursor_reset: {
         if (self.last_cursor_reset) |last| {
             if (last.durationTo(now).toMilliseconds() <= 500) {

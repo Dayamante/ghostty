@@ -2015,6 +2015,15 @@ pub const CAPI = struct {
         return surface.core_surface.getProcessInfo(.foreground_pid) orelse 0;
     }
 
+    /// Milliseconds since the surface last received output from its
+    /// child process, or -1 if it hasn't received any yet.
+    export fn ghostty_surface_output_age_ms(surface: *Surface) i64 {
+        const last = surface.core_surface.io.last_output_ms.load(.monotonic);
+        if (last == 0) return -1;
+        const now = std.Io.Timestamp.now(global.io(), .awake);
+        return @as(i64, @intCast(@divTrunc(now.nanoseconds, std.time.ns_per_ms))) - last;
+    }
+
     /// Returns the PTY name for the surface. The returned string must be
     /// freed by the caller via ghostty_string_free.
     export fn ghostty_surface_tty_name(surface: *Surface) String {
